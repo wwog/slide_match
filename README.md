@@ -1,87 +1,166 @@
-# `@napi-rs/package-template`
+# `slide_match`
 
 ![https://github.com/napi-rs/package-template/actions](https://github.com/napi-rs/package-template/workflows/CI/badge.svg)
 
-> Template project for writing node packages with napi-rs.
+> 高性能滑块匹配 Node.js 原生模块，使用 Rust + NAPI-RS 开发
 
-# Usage
+## 功能特性
 
-1. Click **Use this template**.
-2. **Clone** your project.
-3. Run `yarn install` to install dependencies.
-4. Run `yarn napi rename -n [@your-scope/package-name] -b [binary-name]` command under the project folder to rename your package.
+- 🚀 **高性能**：纯 Rust 实现，原生性能
+- 🎯 **自动裁剪**：支持透明背景自动裁剪
+- 🔧 **边缘检测**：基于 Canny 算法
+- 📦 **零依赖**：无需安装 OpenCV 等第三方库
+- 🖼️ **多格式支持**：支持 PNG、JPEG、GIF、WebP、BMP、ICO、TIFF、AVIF、EXR、HDR、QOI 等格式
 
-## Install this test package
-
-```bash
-yarn add @napi-rs/package-template
-```
-
-## Ability
-
-### Build
-
-After `yarn build/npm run build` command, you can see `package-template.[darwin|win32|linux].node` file in project root. This is the native addon built from [lib.rs](./src/lib.rs).
-
-### Test
-
-With [ava](https://github.com/avajs/ava), run `yarn test/npm run test` to testing native addon. You can also switch to another testing framework if you want.
-
-### CI
-
-With GitHub Actions, each commit and pull request will be built and tested automatically in [`node@20`, `@node22`] x [`macOS`, `Linux`, `Windows`] matrix. You will never be afraid of the native addon broken in these platforms.
-
-### Release
-
-Release native package is very difficult in old days. Native packages may ask developers who use it to install `build toolchain` like `gcc/llvm`, `node-gyp` or something more.
-
-With `GitHub actions`, we can easily prebuild a `binary` for major platforms. And with `N-API`, we should never be afraid of **ABI Compatible**.
-
-The other problem is how to deliver prebuild `binary` to users. Downloading it in `postinstall` script is a common way that most packages do it right now. The problem with this solution is it introduced many other packages to download binary that has not been used by `runtime codes`. The other problem is some users may not easily download the binary from `GitHub/CDN` if they are behind a private network (But in most cases, they have a private NPM mirror).
-
-In this package, we choose a better way to solve this problem. We release different `npm packages` for different platforms. And add it to `optionalDependencies` before releasing the `Major` package to npm.
-
-`NPM` will choose which native package should download from `registry` automatically. You can see [npm](./npm) dir for details. And you can also run `yarn add @napi-rs/package-template` to see how it works.
-
-## Develop requirements
-
-- Install the latest `Rust`
-- Install `Node.js@10+` which fully supported `Node-API`
-- Install `yarn@1.x`
-
-## Test in local
-
-- yarn
-- yarn build
-- yarn test
-
-And you will see:
+## 安装
 
 ```bash
-$ ava --verbose
+# 需要先构建
+npm install
+npm run build
 
-  ✔ sync function from native code
-  ✔ sleep function from native code (201ms)
-  ─
-
-  2 tests passed
-✨  Done in 1.12s.
+# 或在 npm registry 发布后
+npm install slide_match
 ```
 
-## Release package
+## 支持的图片格式
 
-Ensure you have set your **NPM_TOKEN** in the `GitHub` project setting.
+由于使用 `image::load_from_memory`，模块支持以下图片格式：
 
-In `Settings -> Secrets`, add **NPM_TOKEN** into it.
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| PNG | `.png` | 支持透明通道 |
+| JPEG | `.jpg`, `.jpeg` | 常用格式 |
+| GIF | `.gif` | 动画 GIF（会加载第一帧） |
+| WebP | `.webp` | 现代格式 |
+| BMP | `.bmp` | Windows 位图 |
+| ICO | `.ico` | 图标文件 |
+| TIFF | `.tiff`, `.tif` | 高质量格式 |
+| AVIF | `.avif` | 新兴格式 |
+| HDR | `.hdr` | 高动态范围 |
+| EXR | `.exr` | 电影级格式 |
+| QOI | `.qoi` | 快速无损格式 |
+| PNM | `.pbm`, `.pgm`, `.ppm` | Netpbm 格式 |
+| DDS | `.dds` | DirectDraw Surface |
 
-When you want to release the package:
+**不支持**：TGA 格式
+
+> 提示：所有格式的图片数据以 Buffer（u8 数组）形式传入，base64 解码后的数据同样支持。
+
+## API 使用
+
+### 滑块匹配
+
+```typescript
+import { slideMatch, simpleSlideMatch } from 'slide_match'
+
+// 完整滑块匹配（带透明背景裁剪）
+// Buffer 参数可以是 base64 解码后的图片数据
+const targetBuffer = Buffer.from(base64String, 'base64')
+const backgroundBuffer = Buffer.from(base64String2, 'base64')
+
+const result = slideMatch(targetBuffer, backgroundBuffer)
+const bbox = JSON.parse(result)
+// 返回: { target_x, target_y, x1, y1, x2, y2 }
+
+// 简单滑块匹配（无透明背景裁剪）
+const simpleResult = simpleSlideMatch(targetBuffer, backgroundBuffer)
+```
+
+### Node.js 使用示例
+
+```javascript
+const fs = require('fs')
+const { slideMatch } = require('slide_match')
+
+// 方式1: 从文件读取
+const targetImage = fs.readFileSync('./target.png')
+const backgroundImage = fs.readFileSync('./background.png')
+
+// 执行匹配
+const result = slideMatch(targetImage, backgroundImage)
+const bbox = JSON.parse(result)
+
+console.log('匹配结果:', bbox)
+
+// 方式2: 从 base64 字符串
+const base64String = 'data:image/png;base64,iVBORw0KGgoAAAANS...'
+const base64Data = base64String.split(',')[1] // 移除 data URL 前缀
+const imageBuffer = Buffer.from(base64Data, 'base64')
+
+const result2 = slideMatch(imageBuffer, backgroundImage)
+const bbox2 = JSON.parse(result2)
+```
+
+### 返回值格式
+
+```json
+{
+  "target_x": 10,  // 目标图片裁剪起始 X（简单匹配为 0）
+  "target_y": 20,  // 目标图片裁剪起始 Y（简单匹配为 0）
+  "x1": 100,        // 匹配区域左上角 X
+  "y1": 200,        // 匹配区域左上角 Y
+  "x2": 150,        // 匹配区域右下角 X
+  "y2": 250         // 匹配区域右下角 Y
+}
+```
+
+## 开发
+
+### 前置要求
+
+- **Rust** (最新版本)
+- **Node.js** (>= 12.22.0)
+- **npm/yarn**
+
+### 构建和测试
 
 ```bash
-npm version [<newversion> | major | minor | patch | premajor | preminor | prepatch | prerelease [--preid=<prerelease-id>] | from-git]
+# 安装依赖
+npm install
 
-git push
+# 构建发布版本
+npm run build
+
+# 构建调试版本
+npm run build:debug
+
+# 运行测试
+npm test
+
+# 查看基准测试
+npm run bench
 ```
 
-GitHub actions will do the rest job for you.
+```
+slide_match/
+├── src/
+│   └── lib.rs          # Rust 源代码
+├── __test__/           # 测试文件
+├── benchmark/          # 性能基准测试
+├── Cargo.toml          # Rust 依赖配置
+└── package.json        # Node.js 配置
+```
 
-> WARN: Don't run `npm publish` manually.
+## 算法说明
+
+### 滑块匹配流程
+
+1. **图片加载** - 从 Buffer（u8 数组）加载图片
+2. **尺寸验证** - 确保背景图 >= 目标图
+3. **透明区域裁剪** (`slideMatch`) - 自动检测并裁剪透明背景
+4. **灰度转换** - 转换为灰度图
+5. **边缘检测** - Canny 算法（阈值: 100, 200）
+6. **模板匹配** - 归一化互相关匹配
+7. **返回边界框** - 包含匹配位置信息
+
+## 技术栈
+
+- **[NAPI-RS](https://napi.rs/)** - Node.js 原生模块开发框架
+- **[Rust](https://www.rust-lang.org/)** - 底层实现语言
+- **[image](https://docs.rs/image/)** - 图像处理库
+- **[imageproc](https://docs.rs/imageproc/)** - 计算机视觉算法库
+
+## 许可证
+
+MIT
