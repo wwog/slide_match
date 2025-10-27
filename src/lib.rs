@@ -198,7 +198,7 @@ pub fn slide_match(target_image: Buffer, background_image: Buffer) -> Result<Str
   let background_bytes = background_image.as_ref();
 
   let result = slide_match_internal(target_bytes, background_bytes)
-    .map_err(|e| Error::from_reason(format!("滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
@@ -211,7 +211,7 @@ pub fn simple_slide_match(target_image: Buffer, background_image: Buffer) -> Res
   let background_bytes = background_image.as_ref();
 
   let result = simple_slide_match_internal(target_bytes, background_bytes)
-    .map_err(|e| Error::from_reason(format!("滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
@@ -431,12 +431,12 @@ pub fn improved_slide_match(
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
 
   // 验证置信度阈值范围
-  if threshold < 0.0 || threshold > 1.0 {
+  if !(0.0..=1.0).contains(&threshold) {
     return Err(Error::from_reason("置信度阈值必须在 0.0-1.0 范围内"));
   }
 
   let result = improved_slide_match_internal(target_bytes, background_bytes, threshold)
-    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
@@ -462,12 +462,12 @@ pub fn improved_simple_slide_match(
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
 
   // 验证置信度阈值范围
-  if threshold < 0.0 || threshold > 1.0 {
+  if !(0.0..=1.0).contains(&threshold) {
     return Err(Error::from_reason("置信度阈值必须在 0.0-1.0 范围内"));
   }
 
   let result = improved_simple_slide_match_internal(target_bytes, background_bytes, threshold)
-    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
@@ -480,18 +480,18 @@ pub fn improved_slide_match_with_path(
   confidence_threshold: Option<f64>,
 ) -> Result<String> {
   let target_bytes = std::fs::read(&target_image_path)
-    .map_err(|e| Error::from_reason(format!("无法读取目标图片: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("无法读取目标图片: {e}")))?;
   let background_bytes = std::fs::read(&background_image_path)
-    .map_err(|e| Error::from_reason(format!("无法读取背景图片: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("无法读取背景图片: {e}")))?;
 
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
 
-  if threshold < 0.0 || threshold > 1.0 {
+  if !(0.0..=1.0).contains(&threshold) {
     return Err(Error::from_reason("置信度阈值必须在 0.0-1.0 范围内"));
   }
 
   let result = improved_slide_match_internal(&target_bytes, &background_bytes, threshold)
-    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
@@ -504,18 +504,18 @@ pub fn improved_simple_slide_match_with_path(
   confidence_threshold: Option<f64>,
 ) -> Result<String> {
   let target_bytes = std::fs::read(&target_image_path)
-    .map_err(|e| Error::from_reason(format!("无法读取目标图片: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("无法读取目标图片: {e}")))?;
   let background_bytes = std::fs::read(&background_image_path)
-    .map_err(|e| Error::from_reason(format!("无法读取背景图片: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("无法读取背景图片: {e}")))?;
 
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
 
-  if threshold < 0.0 || threshold > 1.0 {
+  if !(0.0..=1.0).contains(&threshold) {
     return Err(Error::from_reason("置信度阈值必须在 0.0-1.0 范围内"));
   }
 
   let result = improved_simple_slide_match_internal(&target_bytes, &background_bytes, threshold)
-    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {}", e)))?;
+    .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
   Ok(result.to_json().to_string())
 }
