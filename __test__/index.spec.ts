@@ -1,115 +1,159 @@
 import test from 'ava'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  simpleSlideMatchWithPath,
-  slideMatchWithBuffer,
-  slideMatchWithPath
+  improvedSlideMatch,
+  slideMatch,
 } from '../index'
 
 const __filename = fileURLToPath(import.meta.url)
 const TEST_DIR = dirname(__filename)
-const TARGET_IMAGE = join(TEST_DIR, 'cutImage.png')
-const BACKGROUND_IMAGE = join(TEST_DIR, 'bigImage.png')
+const IMAGES_DIR = join(TEST_DIR, 'images')
 
-test('滑块匹配 - 从文件路径（带透明背景裁剪）', (t) => {
-  const result = slideMatchWithPath(TARGET_IMAGE, BACKGROUND_IMAGE)
-  t.truthy(result)
+// 解析pos.txt文件
+function parsePosFile(): Map<number, any> {
+  const posFile = join(IMAGES_DIR, 'pos.txt')
+  const content = readFileSync(posFile, 'utf-8')
+  const results = new Map()
 
-  const bbox = JSON.parse(result)
-  console.log('匹配结果:', bbox)
+  content.split('\n').forEach(line => {
+    line = line.trim()
+    if (!line) return
 
-  // 验证返回的边界框字段
-  t.truthy(bbox.x1)
-  t.truthy(bbox.y1)
-  t.truthy(bbox.x2)
-  t.truthy(bbox.y2)
-  t.truthy(bbox.target_x !== undefined)
-  t.truthy(bbox.target_y !== undefined)
+    // 解析格式: 1{ target: [ 149, 95, 204, 140 ], target_x: 0, target_y: 0 }
+    const match = line.match(/(\d+)\{ target: \[ (\d+), (\d+), (\d+), (\d+) \], target_x: (\d+), target_y: (\d+) \}/)
+    if (match) {
+      const [, index, x1, y1, x2, y2, target_x, target_y] = match
+      results.set(parseInt(index), {
+        x1: parseInt(x1),
+        y1: parseInt(y1),
+        x2: parseInt(x2),
+        y2: parseInt(y2),
+        target_x: parseInt(target_x),
+        target_y: parseInt(target_y)
+      })
+    }
+  })
 
-  // 验证边界框坐标的有效性
-  t.true(bbox.x1 < bbox.x2, 'x1应该小于x2')
-  t.true(bbox.y1 < bbox.y2, 'y1应该小于y2')
+  return results
+}
+
+// 获取测试用例
+function getTestCases(): Array<{index: number, cut: string, bg: string, expected: any}> {
+  const expectedResults = parsePosFile()
+  const files = readdirSync(IMAGES_DIR).filter(f => f.endsWith('.png'))
+
+  const cutFiles = files.filter(f => f.startsWith('cut')).sort()
+  const bgFiles = files.filter(f => f.startsWith('bg')).sort()
+
+  return cutFiles.map((cutFile) => {
+    const index = parseInt(cutFile.match(/\d+/)?.[0] || '0')
+    const bgFile = bgFiles.find(f => f.includes(index.toString()))
+
+    return {
+      index,
+      cut: join(IMAGES_DIR, cutFile),
+      bg: bgFile ? join(IMAGES_DIR, bgFile) : '',
+      expected: expectedResults.get(index)
+    }
+  }).filter(tc => tc.bg && tc.expected)
+}
+
+const testCases = getTestCases()
+
+// 原版算法测试
+testCases.forEach(({ index, cut, bg, expected }) => {
+  test(`原版算法 - 测试用例 ${index}`, (t) => {
+    const targetBuffer = readFileSync(cut)
+    const backgroundBuffer = readFileSync(bg)
+    const result = slideMatch(targetBuffer, backgroundBuffer)
+    const bbox = JSON.parse(result)
+
+    const error_x1 = Math.abs(bbox.x1 - expected.x1)
+    const error_y1 = Math.abs(bbox.y1 - expected.y1)
+    const error_x2 = Math.abs(bbox.x2 - expected.x2)
+    const error_y2 = Math.abs(bbox.y2 - expected.y2)
+
+    console.log(`\n测试 ${index} - 原版算法:`)
+    console.log(`预期: [${expected.x1}, ${expected.y1}, ${expected.x2}, ${expected.y2}]`)
+    console.log(`实际: [${bbox.x1}, ${bbox.y1}, ${bbox.x2}, ${bbox.y2}]`)
+    console.log(`误差: [${error_x1}, ${error_y1}, ${error_x2}, ${error_y2}]`)
+
+    t.truthy(result)
+    t.true(error_x1 <= 5, `x1误差应该<=5, 实际=${error_x1}`)
+    t.true(error_y1 <= 5, `y1误差应该<=5, 实际=${error_y1}`)
+    t.true(error_x2 <= 5, `x2误差应该<=5, 实际=${error_x2}`)
+    t.true(error_y2 <= 5, `y2误差应该<=5, 实际=${error_y2}`)
+  })
 })
 
-test('滑块匹配 - 从字节数组（带透明背景裁剪）', (t) => {
-  const targetBuffer = readFileSync(TARGET_IMAGE)
-  const backgroundBuffer = readFileSync(BACKGROUND_IMAGE)
+// 改进版算法测试
+testCases.forEach(({ index, cut, bg, expected }) => {
+  test(`改进版算法 - 测试用例 ${index}`, (t) => {
+    const targetBuffer = readFileSync(cut)
+    const backgroundBuffer = readFileSync(bg)
+    const result = improvedSlideMatch(targetBuffer, backgroundBuffer)
+    const bbox = JSON.parse(result)
 
-  const result = slideMatchWithBuffer(targetBuffer, backgroundBuffer)
-  t.truthy(result)
+    const error_x1 = Math.abs(bbox.x1 - expected.x1)
+    const error_y1 = Math.abs(bbox.y1 - expected.y1)
+    const error_x2 = Math.abs(bbox.x2 - expected.x2)
+    const error_y2 = Math.abs(bbox.y2 - expected.y2)
 
-  const bbox = JSON.parse(result)
-  console.log('匹配结果:', bbox)
+    console.log(`\n测试 ${index} - 改进版算法:`)
+    console.log(`预期: [${expected.x1}, ${expected.y1}, ${expected.x2}, ${expected.y2}]`)
+    console.log(`实际: [${bbox.x1}, ${bbox.y1}, ${bbox.x2}, ${bbox.y2}]`)
+    console.log(`误差: [${error_x1}, ${error_y1}, ${error_x2}, ${error_y2}]`)
 
-  // 验证返回的边界框字段
-  t.truthy(bbox.x1)
-  t.truthy(bbox.y1)
-  t.truthy(bbox.x2)
-  t.truthy(bbox.y2)
-  t.truthy(bbox.target_x !== undefined)
-  t.truthy(bbox.target_y !== undefined)
-
-  // 验证边界框坐标的有效性
-  t.true(bbox.x1 < bbox.x2, 'x1应该小于x2')
-  t.true(bbox.y1 < bbox.y2, 'y1应该小于y2')
+    t.truthy(result)
+    t.true(error_x1 <= 5, `x1误差应该<=5, 实际=${error_x1}`)
+    t.true(error_y1 <= 5, `y1误差应该<=5, 实际=${error_y1}`)
+    t.true(error_x2 <= 5, `x2误差应该<=5, 实际=${error_x2}`)
+    t.true(error_y2 <= 5, `y2误差应该<=5, 实际=${error_y2}`)
+  })
 })
 
-test('简单滑块匹配 - 从文件路径（无透明背景裁剪）', (t) => {
-  const result = simpleSlideMatchWithPath(TARGET_IMAGE, BACKGROUND_IMAGE)
-  t.truthy(result)
+// 算法对比统计
+test('算法准确性统计', (t) => {
+  let originalAccurate = 0
+  let improvedAccurate = 0
+  let originalTotalError = 0
+  let improvedTotalError = 0
 
-  const bbox = JSON.parse(result)
-  console.log('简单匹配结果:', bbox)
+  testCases.forEach(({ cut, bg, expected }) => {
+    // 原版算法
+    try {
+      const targetBuffer = readFileSync(cut)
+      const backgroundBuffer = readFileSync(bg)
+      const originalResult = slideMatch(targetBuffer, backgroundBuffer)
+      const originalBbox = JSON.parse(originalResult)
+      const error = Math.abs(originalBbox.x1 - expected.x1) + Math.abs(originalBbox.y1 - expected.y1)
+      originalTotalError += error
+      if (error <= 5) originalAccurate++
+    } catch (e) {
+      // 失败不计入
+    }
 
-  // 验证返回的边界框字段
-  t.truthy(bbox.x1)
-  t.truthy(bbox.y1)
-  t.truthy(bbox.x2)
-  t.truthy(bbox.y2)
-  t.truthy(bbox.target_x !== undefined)
-  t.truthy(bbox.target_y !== undefined)
+    // 改进版算法
+    try {
+      const targetBuffer = readFileSync(cut)
+      const backgroundBuffer = readFileSync(bg)
+      const improvedResult = improvedSlideMatch(targetBuffer, backgroundBuffer)
+      const improvedBbox = JSON.parse(improvedResult)
+      const error = Math.abs(improvedBbox.x1 - expected.x1) + Math.abs(improvedBbox.y1 - expected.y1)
+      improvedTotalError += error
+      if (error <= 5) improvedAccurate++
+    } catch (e) {
+      // 失败不计入
+    }
+  })
 
-  // 简单匹配target_x和target_y应该为0
-  t.is(bbox.target_x, 0, '简单匹配target_x应该为0')
-  t.is(bbox.target_y, 0, '简单匹配target_y应该为0')
-
-  // 验证边界框坐标的有效性
-  t.true(bbox.x1 < bbox.x2, 'x1应该小于x2')
-  t.true(bbox.y1 < bbox.y2, 'y1应该小于y2')
-})
-
-test('滑块匹配 - 验证结果准确性', (t) => {
-  const result = slideMatchWithPath(TARGET_IMAGE, BACKGROUND_IMAGE)
-  const bbox = JSON.parse(result)
-
-  // 根据pos.txt中的预期结果进行验证
-  // 注意：实际匹配结果可能与预期不完全一致，这里只是验证格式
-  t.truthy(typeof bbox.x1 === 'number')
-  t.truthy(typeof bbox.y1 === 'number')
-  t.truthy(typeof bbox.x2 === 'number')
-  t.truthy(typeof bbox.y2 === 'number')
-  t.truthy(typeof bbox.target_x === 'number')
-  t.truthy(typeof bbox.target_y === 'number')
-
-  console.log('预期数据: target [177, 61, 232, 106]')
-  console.log('实际结果:', bbox)
-})
-
-test('解释target_x和target_y的含义', (t) => {
-  const result = slideMatchWithPath(TARGET_IMAGE, BACKGROUND_IMAGE)
-  const bbox = JSON.parse(result)
-
-  console.log('\n=== target_x 和 target_y 的含义 ===')
-  console.log('target_x:', bbox.target_x, '- 这是图片裁剪时从原图左边界向右的偏移量')
-  console.log('target_y:', bbox.target_y, '- 这是图片裁剪时从原图上边界向下的偏移量')
-  console.log('\n如果 target_x = 0, target_y = 0，说明：')
-  console.log('1. 图片没有透明背景，或')
-  console.log('2. 透明部分在图片边缘的最左上角位置，即第一个有效像素就在(0,0)位置')
-  console.log('\n裁剪后的实际滑块区域：')
-  console.log('在背景图中的位置: x1=' + bbox.x1 + ', y1=' + bbox.y1 + ', x2=' + bbox.x2 + ', y2=' + bbox.y2)
-  console.log('需要滑动的距离: x = ' + bbox.x1 + ' - ' + bbox.target_x + ' = ' + (bbox.x1 - bbox.target_x))
+  console.log('\n=== 算法准确性统计 ===')
+  console.log(`原版准确: ${originalAccurate}/${testCases.length} (${(originalAccurate/testCases.length*100).toFixed(1)}%)`)
+  console.log(`改进准确: ${improvedAccurate}/${testCases.length} (${(improvedAccurate/testCases.length*100).toFixed(1)}%)`)
+  console.log(`原版平均误差: ${(originalTotalError/testCases.length).toFixed(2)}`)
+  console.log(`改进平均误差: ${(improvedTotalError/testCases.length).toFixed(2)}`)
 
   t.pass()
 })

@@ -1,0 +1,4 @@
+1{ target: [ 149, 95, 204, 140 ], target_x: 0, target_y: 0 }
+2{ target: [ 67, 42, 122, 87 ], target_x: 0, target_y: 0 }
+3{ target: [ 81, 7, 136, 52 ], target_x: 0, target_y: 0 }
+4{ target: [ 215, 3, 270, 48 ], target_x: 0, target_y: 0 }
