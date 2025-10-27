@@ -1,11 +1,11 @@
 {
-  "name": "slide_match",
-  "version": "1.0.0",
+  "name": "@wwog/slide_match",
+  "version": "1.0.1",
   "description": "Template project for writing node package with napi-rs",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/napi-rs/package-template.git"
+    "url": "https://www.github.com/wwog/slide_match"
   },
   "license": "MIT",
   "browser": "browser.js",
