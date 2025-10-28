@@ -8,9 +8,6 @@
  * - target_image: 目标图片 Buffer
  * - background_image: 背景图片 Buffer
  * - confidence_threshold: 置信度阈值，范围 0.0-1.0，默认 0.3
- *
- * # 返回
- * JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
  */
 export declare function improvedSimpleSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): SlideBBox
 
@@ -25,9 +22,6 @@ export declare function improvedSimpleSlideMatchWithPath(targetImagePath: string
  * - target_image: 目标图片 Buffer
  * - background_image: 背景图片 Buffer
  * - confidence_threshold: 置信度阈值，范围 0.0-1.0，默认 0.3
- *
- * # 返回
- * JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
  */
 export declare function improvedSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): SlideBBox
 

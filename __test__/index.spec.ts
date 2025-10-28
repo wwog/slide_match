@@ -67,8 +67,7 @@ testCases.forEach(({ index, cut, bg, expected }) => {
   test(`原版算法 - 测试用例 ${index}`, (t) => {
     const targetBuffer = readFileSync(cut)
     const backgroundBuffer = readFileSync(bg)
-    const result = slideMatch(targetBuffer, backgroundBuffer)
-    const bbox = JSON.parse(result)
+    const bbox = slideMatch(targetBuffer, backgroundBuffer)
 
     const error_x1 = Math.abs(bbox.x1 - expected.x1)
     const error_y1 = Math.abs(bbox.y1 - expected.y1)
@@ -80,7 +79,7 @@ testCases.forEach(({ index, cut, bg, expected }) => {
     console.log(`实际: [${bbox.x1}, ${bbox.y1}, ${bbox.x2}, ${bbox.y2}]`)
     console.log(`误差: [${error_x1}, ${error_y1}, ${error_x2}, ${error_y2}]`)
 
-    t.truthy(result)
+    t.truthy(bbox)
     t.true(error_x1 <= 5, `x1误差应该<=5, 实际=${error_x1}`)
     t.true(error_y1 <= 5, `y1误差应该<=5, 实际=${error_y1}`)
     t.true(error_x2 <= 5, `x2误差应该<=5, 实际=${error_x2}`)
@@ -93,8 +92,7 @@ testCases.forEach(({ index, cut, bg, expected }) => {
   test(`改进版算法 - 测试用例 ${index}`, (t) => {
     const targetBuffer = readFileSync(cut)
     const backgroundBuffer = readFileSync(bg)
-    const result = improvedSlideMatch(targetBuffer, backgroundBuffer)
-    const bbox = JSON.parse(result)
+    const bbox = improvedSlideMatch(targetBuffer, backgroundBuffer)
 
     const error_x1 = Math.abs(bbox.x1 - expected.x1)
     const error_y1 = Math.abs(bbox.y1 - expected.y1)
@@ -106,7 +104,7 @@ testCases.forEach(({ index, cut, bg, expected }) => {
     console.log(`实际: [${bbox.x1}, ${bbox.y1}, ${bbox.x2}, ${bbox.y2}]`)
     console.log(`误差: [${error_x1}, ${error_y1}, ${error_x2}, ${error_y2}]`)
 
-    t.truthy(result)
+    t.truthy(bbox)
     t.true(error_x1 <= 5, `x1误差应该<=5, 实际=${error_x1}`)
     t.true(error_y1 <= 5, `y1误差应该<=5, 实际=${error_y1}`)
     t.true(error_x2 <= 5, `x2误差应该<=5, 实际=${error_x2}`)
@@ -126,8 +124,7 @@ test('算法准确性统计', (t) => {
     try {
       const targetBuffer = readFileSync(cut)
       const backgroundBuffer = readFileSync(bg)
-      const originalResult = slideMatch(targetBuffer, backgroundBuffer)
-      const originalBbox = JSON.parse(originalResult)
+      const originalBbox = slideMatch(targetBuffer, backgroundBuffer)
       const error = Math.abs(originalBbox.x1 - expected.x1) + Math.abs(originalBbox.y1 - expected.y1)
       originalTotalError += error
       if (error <= 5) originalAccurate++
@@ -139,8 +136,7 @@ test('算法准确性统计', (t) => {
     try {
       const targetBuffer = readFileSync(cut)
       const backgroundBuffer = readFileSync(bg)
-      const improvedResult = improvedSlideMatch(targetBuffer, backgroundBuffer)
-      const improvedBbox = JSON.parse(improvedResult)
+      const improvedBbox = improvedSlideMatch(targetBuffer, backgroundBuffer)
       const error = Math.abs(improvedBbox.x1 - expected.x1) + Math.abs(improvedBbox.y1 - expected.y1)
       improvedTotalError += error
       if (error <= 5) improvedAccurate++

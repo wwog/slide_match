@@ -17,7 +17,6 @@ pub struct SlideBBox {
   pub y2: u32,
 }
 
-
 // 改进算法1: 自适应Canny阈值计算
 fn calculate_adaptive_canny_thresholds(img: &GrayImage) -> (f32, f32) {
   let total_pixels = (img.width() * img.height()) as f32;

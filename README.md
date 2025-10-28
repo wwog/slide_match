@@ -59,12 +59,11 @@ import { slideMatch, simpleSlideMatch } from 'slide_match'
 const targetBuffer = Buffer.from(base64String, 'base64')
 const backgroundBuffer = Buffer.from(base64String2, 'base64')
 
-const result = slideMatch(targetBuffer, backgroundBuffer)
-const bbox = JSON.parse(result)
-// 返回: { target_x, target_y, x1, y1, x2, y2 }
+const bbox = slideMatch(targetBuffer, backgroundBuffer)
+// 返回对象: { targetX, targetY, x1, y1, x2, y2 }
 
 // 简单滑块匹配（无透明背景裁剪）
-const simpleResult = simpleSlideMatch(targetBuffer, backgroundBuffer)
+const simpleBBox = simpleSlideMatch(targetBuffer, backgroundBuffer)
 ```
 
 ### Node.js 使用示例
@@ -78,8 +77,7 @@ const targetImage = fs.readFileSync('./target.png')
 const backgroundImage = fs.readFileSync('./background.png')
 
 // 执行匹配
-const result = slideMatch(targetImage, backgroundImage)
-const bbox = JSON.parse(result)
+const bbox = slideMatch(targetImage, backgroundImage)
 
 console.log('匹配结果:', bbox)
 
@@ -88,22 +86,17 @@ const base64String = 'data:image/png;base64,iVBORw0KGgoAAAANS...'
 const base64Data = base64String.split(',')[1] // 移除 data URL 前缀
 const imageBuffer = Buffer.from(base64Data, 'base64')
 
-const result2 = slideMatch(imageBuffer, backgroundImage)
-const bbox2 = JSON.parse(result2)
+const bbox2 = slideMatch(imageBuffer, backgroundImage)
 ```
 
-### 返回值格式
+### 返回值字段
 
-```json
-{
-  "target_x": 10,  // 目标图片裁剪起始 X（简单匹配为 0）
-  "target_y": 20,  // 目标图片裁剪起始 Y（简单匹配为 0）
-  "x1": 100,        // 匹配区域左上角 X
-  "y1": 200,        // 匹配区域左上角 Y
-  "x2": 150,        // 匹配区域右下角 X
-  "y2": 250         // 匹配区域右下角 Y
-}
-```
+- targetX: 目标图片裁剪起始 X（简单匹配为 0）
+- targetY: 目标图片裁剪起始 Y（简单匹配为 0）
+- x1: 匹配区域左上角 X
+- y1: 匹配区域左上角 Y
+- x2: 匹配区域右下角 X
+- y2: 匹配区域右下角 Y
 
 ## 开发
 
