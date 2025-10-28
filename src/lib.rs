@@ -6,6 +6,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 // 定义 SlideBBox 结构体
+#[napi(object)]
 #[derive(Debug, Clone)]
 pub struct SlideBBox {
   pub target_x: u32,
@@ -16,18 +17,6 @@ pub struct SlideBBox {
   pub y2: u32,
 }
 
-impl SlideBBox {
-  pub fn to_json(&self) -> serde_json::Value {
-    serde_json::json!({
-        "target_x": self.target_x,
-        "target_y": self.target_y,
-        "x1": self.x1,
-        "y1": self.y1,
-        "x2": self.x2,
-        "y2": self.y2
-    })
-  }
-}
 
 // 改进算法1: 自适应Canny阈值计算
 fn calculate_adaptive_canny_thresholds(img: &GrayImage) -> (f32, f32) {
@@ -193,27 +182,27 @@ fn simple_slide_match_internal(
 /// 滑块匹配（带透明背景裁剪）
 /// 接受 Buffer 参数（支持 base64 解码后的 u8 数组）
 #[napi]
-pub fn slide_match(target_image: Buffer, background_image: Buffer) -> Result<String> {
+pub fn slide_match(target_image: Buffer, background_image: Buffer) -> Result<SlideBBox> {
   let target_bytes = target_image.as_ref();
   let background_bytes = background_image.as_ref();
 
   let result = slide_match_internal(target_bytes, background_bytes)
     .map_err(|e| Error::from_reason(format!("滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }
 
 /// 简单滑块匹配（无透明背景裁剪）
 /// 接受 Buffer 参数（支持 base64 解码后的 u8 数组）
 #[napi]
-pub fn simple_slide_match(target_image: Buffer, background_image: Buffer) -> Result<String> {
+pub fn simple_slide_match(target_image: Buffer, background_image: Buffer) -> Result<SlideBBox> {
   let target_bytes = target_image.as_ref();
   let background_bytes = background_image.as_ref();
 
   let result = simple_slide_match_internal(target_bytes, background_bytes)
     .map_err(|e| Error::from_reason(format!("滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }
 
 // ========== 改进算法实现 ==========
@@ -418,14 +407,12 @@ fn improved_simple_slide_match_internal(
 /// - background_image: 背景图片 Buffer
 /// - confidence_threshold: 置信度阈值，范围 0.0-1.0，默认 0.3
 ///
-/// # 返回
-/// JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
 #[napi]
 pub fn improved_slide_match(
   target_image: Buffer,
   background_image: Buffer,
   confidence_threshold: Option<f64>,
-) -> Result<String> {
+) -> Result<SlideBBox> {
   let target_bytes = target_image.as_ref();
   let background_bytes = background_image.as_ref();
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
@@ -438,7 +425,7 @@ pub fn improved_slide_match(
   let result = improved_slide_match_internal(target_bytes, background_bytes, threshold)
     .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }
 
 /// 改进版简单滑块匹配（无透明背景裁剪 + 自适应阈值 + 置信度验证）
@@ -449,14 +436,12 @@ pub fn improved_slide_match(
 /// - background_image: 背景图片 Buffer
 /// - confidence_threshold: 置信度阈值，范围 0.0-1.0，默认 0.3
 ///
-/// # 返回
-/// JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
 #[napi]
 pub fn improved_simple_slide_match(
   target_image: Buffer,
   background_image: Buffer,
   confidence_threshold: Option<f64>,
-) -> Result<String> {
+) -> Result<SlideBBox> {
   let target_bytes = target_image.as_ref();
   let background_bytes = background_image.as_ref();
   let threshold = confidence_threshold.unwrap_or(0.3) as f32;
@@ -469,7 +454,7 @@ pub fn improved_simple_slide_match(
   let result = improved_simple_slide_match_internal(target_bytes, background_bytes, threshold)
     .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }
 
 /// 改进版滑块匹配 - 从文件路径
@@ -478,7 +463,7 @@ pub fn improved_slide_match_with_path(
   target_image_path: String,
   background_image_path: String,
   confidence_threshold: Option<f64>,
-) -> Result<String> {
+) -> Result<SlideBBox> {
   let target_bytes = std::fs::read(&target_image_path)
     .map_err(|e| Error::from_reason(format!("无法读取目标图片: {e}")))?;
   let background_bytes = std::fs::read(&background_image_path)
@@ -493,7 +478,7 @@ pub fn improved_slide_match_with_path(
   let result = improved_slide_match_internal(&target_bytes, &background_bytes, threshold)
     .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }
 
 /// 改进版简单滑块匹配 - 从文件路径
@@ -502,7 +487,7 @@ pub fn improved_simple_slide_match_with_path(
   target_image_path: String,
   background_image_path: String,
   confidence_threshold: Option<f64>,
-) -> Result<String> {
+) -> Result<SlideBBox> {
   let target_bytes = std::fs::read(&target_image_path)
     .map_err(|e| Error::from_reason(format!("无法读取目标图片: {e}")))?;
   let background_bytes = std::fs::read(&background_image_path)
@@ -517,5 +502,5 @@ pub fn improved_simple_slide_match_with_path(
   let result = improved_simple_slide_match_internal(&target_bytes, &background_bytes, threshold)
     .map_err(|e| Error::from_reason(format!("改进版滑块匹配失败: {e}")))?;
 
-  Ok(result.to_json().to_string())
+  Ok(result)
 }

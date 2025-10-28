@@ -12,10 +12,10 @@
  * # 返回
  * JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
  */
-export declare function improvedSimpleSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): string
+export declare function improvedSimpleSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): SlideBBox
 
 /** 改进版简单滑块匹配 - 从文件路径 */
-export declare function improvedSimpleSlideMatchWithPath(targetImagePath: string, backgroundImagePath: string, confidenceThreshold?: number | undefined | null): string
+export declare function improvedSimpleSlideMatchWithPath(targetImagePath: string, backgroundImagePath: string, confidenceThreshold?: number | undefined | null): SlideBBox
 
 /**
  * 改进版滑块匹配（带透明背景裁剪 + 自适应阈值 + 置信度验证）
@@ -29,19 +29,28 @@ export declare function improvedSimpleSlideMatchWithPath(targetImagePath: string
  * # 返回
  * JSON 字符串包含匹配结果: { "target_x", "target_y", "x1", "y1", "x2", "y2" }
  */
-export declare function improvedSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): string
+export declare function improvedSlideMatch(targetImage: Buffer, backgroundImage: Buffer, confidenceThreshold?: number | undefined | null): SlideBBox
 
 /** 改进版滑块匹配 - 从文件路径 */
-export declare function improvedSlideMatchWithPath(targetImagePath: string, backgroundImagePath: string, confidenceThreshold?: number | undefined | null): string
+export declare function improvedSlideMatchWithPath(targetImagePath: string, backgroundImagePath: string, confidenceThreshold?: number | undefined | null): SlideBBox
 
 /**
  * 简单滑块匹配（无透明背景裁剪）
  * 接受 Buffer 参数（支持 base64 解码后的 u8 数组）
  */
-export declare function simpleSlideMatch(targetImage: Buffer, backgroundImage: Buffer): string
+export declare function simpleSlideMatch(targetImage: Buffer, backgroundImage: Buffer): SlideBBox
+
+export interface SlideBBox {
+  targetX: number
+  targetY: number
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
 
 /**
  * 滑块匹配（带透明背景裁剪）
  * 接受 Buffer 参数（支持 base64 解码后的 u8 数组）
  */
-export declare function slideMatch(targetImage: Buffer, backgroundImage: Buffer): string
+export declare function slideMatch(targetImage: Buffer, backgroundImage: Buffer): SlideBBox
